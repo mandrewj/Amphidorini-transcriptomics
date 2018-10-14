@@ -1,0 +1,1 @@
+Amphidora_littoralis_KK36_ORTHOMCL10012|Gene.8291	Amphidora_littoralis_KK36_SISRS_NODE_350384_length_782_cov_3.5370	669	1296	802	0.0	1236
