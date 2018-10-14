@@ -1,0 +1,49 @@
+Missing data
+cat combined-pruned-concat-alignment.phy | tr -cd "n-" | wc -c
+
+
+###### AA29-concat-alignment.phy ######
+29 taxa x 66364 characters
+1924527 total bases
+
+127396 '-' characters
+
+6.6% gaps
+
+###### NUCL-29-concat-alignment.phy ######
+29 taxa x 199567 characters
+5787443 total bases
+
+376362 '-' and 'n' characters
+(19 n's in names)
+
+6.5% gaps and missing data
+
+
+###### SISRS-loci-concat-alignment.phy ######
+29 taxa x 196587 characters
+5701023 total bases
+
+268184 '-' and 'n' characters
+(19 n's in names)
+
+4.7% gaps and missing data
+
+###### 1k-sisrs-concat-alignment.phy ######
+29 taxa x 408419 bases
+11844151 total bases
+
+1563812 "-" and "n" characters
+(19 n's in names)
+
+13.2% gaps/missing data
+
+
+###### Combined-pruned ########
+29 taxa x 728670 characters
+21131430 total bases
+
+1906868 "-" and "n" characters
+(19 n's in names)
+
+9.0% gaps/missing data

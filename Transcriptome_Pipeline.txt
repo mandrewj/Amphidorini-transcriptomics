@@ -1,0 +1,486 @@
+###### BLAST INSTRUCTIONS
+blastn -query Stenomorpha_WorkingForKojun.fasta -db Tribolium_castaneum.Tcas5.2.cds.all.fa -word_size 11 -gapextend 2 -gapopen 5 -reward 2 -penalty -3 > kkTribolium.txt
+#somehow it didn't work with regular blastn .... you need to set to NCBI settings ....
+#can simplify:
+blastn -task blastn -query seq.fa -db target
+
+
+cat fastq/K30_TGACCA_L007_R2_00* > Eleodes_caudiferus_KKRNA00030_R2.fastq.gz
+
+
+agalma catalog insert -i Eleodes_caudiferus_KKRNA00030 -p Eleodes_caudiferus_KKRNA00030_R1.fastq.gz Eleodes_caudiferus_KKRNA00030_R2.fastq.gz 
+
+agalma preassemble -i <name> -o <dir>
+agalma assemble -i <name> -o MYASSEMBLY
+
+
+#Be sure to move TruSeq3-PE.fa into file with fastqs!
+java -jar ~/trimmomatic/trimmomatic-0.33.jar PE -threads 8 -phred33 Eleodes_caudiferus_KKRNA00030_R1.fastq.gz Eleodes_caudiferus_KKRNA00030_R2.fastq.gz E_caudiferus_KK30_R1_paired.fq.gz E_caudiferus_KK30_R1_unpaired.fq.gz E_caudiferus_KK30_R2_paired.fq.gz E_caudiferus_KK30_R2_unpaired.fq.gz ILLUMINACLIP:TruSeq3-PE.fa:2:30:10 LEADING:3 TRAILING:3 SLIDINGWINDOW:4:15 MINLEN:36
+
+
+#########
+#Helpful bash commands for moving things.
+#########
+
+#Find all matching files, perform the command ($LONG was the path to trnityrnaseq-master/util/misc/get_longest_isoform_seq_per_trinity_gene.pl
+find Assembled/  -name "*.Trinity.fa" | while read FILE; do $LONG $FILE > ${FILE%%.Trinity.fa}_longiso.fa; done
+
+#Move all files matching search query from all subdirectories of Assembled/ to the new directory all/
+find Assembled/ -name "*longiso.fa" -exec cp -prv '{}' 'all/' ';'
+
+
+
+
+
+################################################################################
+################################################################################
+##################                                         #####################
+##################           AGALMA ASSEMBLIES             #####################
+##################	      AND CLUSTERING               #####################
+##################                                         #####################
+################################################################################
+################################################################################
+
+#####
+##### batch_agalma.sh script, used to run on a directory of folders with similarly named R1 and R2 fastqs in them:
+#####
+
+for taxon in  */
+	do 
+		echo '######################################'
+		echo Processing ${taxon%/} ...
+		date
+		echo '######################################'
+		gohome=$PWD
+		cd $taxon
+		echo $PWD
+		taxon=${taxon%/}
+		echo ###
+		echo ###
+		date
+		echo ###
+		echo ###
+		agalma catalog insert -i $taxon -p ${taxon}_R1.fastq.gz ${taxon}_R2.fastq.gz
+		agalma preassemble -i  $taxon -o $taxon
+		agalma assemble -i $taxon -o $taxon
+		cd $gohome
+		echo $PWD
+		
+
+done
+
+
+#############
+#############Notes:  This took between 4 and 10 hours per assembly.  Average was probably around 6-8, when the gzipped fq files were each ~1.8gb
+#############
+
+
+
+
+###########
+# Calculate basic statistics of each assembly, by calling TrinityStats.pl
+/dir/to/trinityrnaseq-master/util/TrinityStats.pl <file.Trinity.fa> > output_name.txt
+
+
+###########
+#extract 2k sequences to blast:
+
+#Prints until the Nth occurrence (of '>' in this case)
+cat Amphidora_littoralis_KK36.Trinity.fa | awk -vN=2000 'n<N;/>/{++n}' > Am_lit_2k_2.fa
+# Count the occurrences in the output, to be sure.
+grep -c '>' Am_lit_2k_2.fa 
+
+### Batch command
+#
+mkdir 2k
+for FILE in *.Trinity.fa ; do cat $FILE | awk -v N=2000 'n<N;/>/{++n}' > 2k/2k_${FILE}; done
+
+
+
+
+###################
+##  TransDecoder ##
+###################
+
+
+#Move finished assemblies to a single directory.
+#Run Transdecoder on all Trinity assemblies.
+TRANS='/home/andrew/scratch/TransDecoder-3.0.1/TransDecoder.LongOrfs'
+cd '/media/andrew/data/Assembled/TrinityAssemblies'
+for FILE in *.fa; do $TRANS -t $FILE; done
+
+
+#####
+## Move and rename TransDecoder output files into AA (amino acid) and NUCL (nucleotide) folders.
+mkdir AA
+mkdir NUCL
+ls -d -- *transdecoder_dir/ | while read line; do cp ${line}longest_orfs.pep AA/${line%%.Trinity*}_AA.fa; cp ${line}longest_orfs.cds NUCL/${line%%.Trinity*}_NUCL.fa; done
+
+
+
+
+################
+##  FastOrtho ##
+################
+
+## 15 taxa run##
+Accidentally ran it on just 15 taxa ... took ~3.2 days to cluster. Reran, as detailed below, with all 21 desired transcriptomes
+
+** Installation**
+Followed guide from:
+https://github.com/grovesdixon/using_FastOrtho
+
+had to change a line in the makefile to compile FastOrtho.
+used their option_file_template.txt to double check my options before running.
+Created configuration file using SetFast.jar
+Had to update the file to utilize 8 threads for blast, instead the 1 which is automatic.
+
+## running FastOrtho, had configuration file in a directory with all transcriptomes in a subdirectory.
+cd '/home/andrew/scratch/FastOrtho/src' 
+./FastOrtho '/media/andrew/data/to_analyze/fastortho/Eleodes_FastOrtho23'
+
+Citation, printed to terminal:
+
+Please cite:
+    Stijn van Dongen, Graph Clustering by Flow Simulation.  PhD thesis,
+    University of Utrecht, May 2000.
+       (  http://www.library.uu.nl/digiarchief/dip/diss/1895620/full.pdf
+       or  http://micans.org/mcl/lit/svdthesis.pdf.gz)
+OR
+    Stijn van Dongen, A cluster algorithm for graphs. Technical
+    Report INS-R0010, National Research Institute for Mathematics
+    and Computer Science in the Netherlands, Amsterdam, May 2000.
+       (  http://www.cwi.nl/ftp/CWIreports/INS/INS-R0010.ps.Z
+       or  http://micans.org/mcl/lit/INS-R0010.ps.Z)
+
+
+######
+54732 clusters found
+598894 genes incorporated from 21 taxa
+445292 seconds to run (5.1 days) on 4-core hyperthreaded (8 threads) linux box.
+
+**Compressed EleOrtho.out (was over 20gb ... don't really need the blast results any more ...)**
+
+#####
+Re-ran with 23 taxa (forgot Trogloderus and Lariversius)
+gene count = 663681 in 23 taxons
+ 286.00 to run mcl and convert its output
+ 536129.00 total duration (6.2 days) on 4-core hyperthreaded (8 threads) linux box
+
+######
+Find 1:1 ortholog groups:
+for X in $(seq 21); do echo $X; grep -c "($X genes,$X taxa)" EleOrtho.end;done
+#counts from 1 to 21, looks for groups with X genes from X taxa.
+366 1:1 orthos from 23 taxa.
+57,952 putative ortholog groups
+12995 is last Ortholog Group with 17+ genes (73% data coverage for 17/23 taxa)
+6335 from 23 taxa
+#To remove the |Gene.#### parts of the taxon names ...
+cat ORTHOMCL9674_bip.tre | sed -e 's/\|Gene.[0-9]\{1,\}//g' > out.txt
+#Note that used \d+ should work on linux, but on the mac I needed [0-9] instead of \d, and + did not work, so had to use {1,} meaning 1 or more numbers.
+
+###################
+#Used the FastOrthoProcess.py file to sort the .end file into ortholog groups.
+
+##### Started with a smaller sample size
+#just used a text editor to pull out all the  putative 1:1 orthologs
+
+python3 FastOrthoProcess.py 23taxa_23genes.txt AA/ NUCL/ 
+
+#create a list of ortholog groups (OrthoGroups/*/ gives the full relative path to the higher directory)
+ls -d OrthoGroups/*/ > directories.txt
+
+####Example commands to formulate scripts:
+mafft --thread 7 ORTHOMCL9673_AA.fa > ORTHOMCL9673_AA_aln.fa
+#For each folder (ORTHO*/) do something ...
+for FILE in $(ls -d ORTHO*/); do echo $FILE; done
+#
+#Reads a file in, finds header lines, cuts the line at the escaped |, counts unique names
+#Note: this leaves the '>' at the front of each taxon name, but it works fine for counting.
+cat ORTHOMCL9673_NUCL.fa | grep '>' | cut -d \| -f1 |uniq | wc -l
+
+
+
+###
+###
+###
+######################
+### Commands run for '1:1' orthologs
+######################
+#placing scripts in a folder at the top of the list.
+mkdir all_scripts
+#created a directory for failed ortholog groups
+mkdir failed_groups
+#ran MultiMAFFT.sh - which I edited moderately from Kojun's version
+./all_scripts/MultiMAFFT.sh
+#ran Format_alignments.sh - converts to 1-line fasta, checks for shortseqs, removes groups missing taxa
+./all_scripts/Format_alignments.sh
+#ran MultiProttest.sh - uses prottest 3.4.2 on each cluster, makes a file called raxmlmodel with the model name in each directory
+./all_scripts/MultiProttest.sh
+#ran multi raxml script - converts fasta to phylip, runs raxml and cleans up files.
+./all_scripts/MultiRaxml.sh
+#Note: be SURE to have the python script path correct ....
+
+#started RAXML at Sat Feb 11 22:21:50 MST 2017 (30 BS trees)
+#finished batch script at Sun Feb 12 15:35:22 MST 2017
+
+#gathered and cleaned all gene/BS trees for ASTRAL analysis:
+./all_scripts/ASTRAL_prep.sh
+
+
+
+
+#####################
+## ASTRAL ANALYSIS ##
+#####################
+
+#ran Astral using the following command:
+cd ASTRAL
+java -jar '/home/andrew/phylo_path/Astral/astral.4.10.12.jar' -i genetrees_clean.tre -o astral_out -b BStrees  -r 30
+
+#Note I only had 30 BS replicated for each gene, and I really want 100, especially for later SNaQ inference.
+#I renamed the original ASTRAL folder to ASTRAL_30BS
+#ran the modified raxml script to perform 100 bootstraps and write bipartitions to best tree already found
+./all_scripts/MultiRaxml_bs100.sh
+#then ran the slightly modified ASTRAL prep script to pull 100 bs trees together
+./all_scripts/ASTRAL_prep100.sh
+
+#Re-ran astral using these further bootstrapped trees:
+java -jar '/home/andrew/phylo_path/Astral/astral.4.10.12.jar' -i genetrees_clean.tre -o astral_out -b BStrees  -r 100
+
+
+
+
+###################
+## SNaQ Analysis ##
+###################
+
+#######
+#Running SNaQ to check for hybrid events.
+#Note I needed sudo to install one of the package dependencies
+cd ASTRAL #start in Astral output directory
+sudo julia
+#install phylonet
+Pkg.add("PhyloNetworks")
+#start using phylonetworks ... this is where we can start later.
+using PhyloNetworks
+#open genetree file
+raxmlCF = readTrees2CF("genetrees_clean.tre", writeTab=false, writeSummary=false)
+#read in starting topology, the 102nd tree in the astral_out file
+astraltree = readMultiTopology("astral_out")[102]
+
+#estimate best network, starting with 0 hybrid events (Fri 1:40PM START)
+net0 = snaq!(astraltree,raxmlCF,hmax=0, filename="net0_raxml")
+#quit, re-ran as runs=1 at 1:41 to test timing. Only using 1 core, but nearly 16gb of RAM.
+#encountered errors and could not run.  It turns out I need to remove node BS values from the gene trees.
+#command is from Cecile Ane
+sed -E "s/)[0-9]+:/):/g" genetrees_clean.tre > genetrees_clean_noBS.tre
+
+#back in julia, re-run the original command sequence...
+raxmlCF = readTrees2CF("genetrees_clean_noBS.tre", writeTab=false, writeSummary=false)
+astraltree = readMultiTopology("astral_out")[102]
+net0 = snaq!(astraltree,raxmlCF,hmax=0, filename="net0_raxml")
+#started 6:30pm on Sat 2/18/17
+#finished (10 runs) 11:15am Monday 2/20/17
+
+#ran with 1 hybrid event ...
+net1 = snaq!(net0,raxmlCF,hmax=1, filename="net1_raxml")
+#started 12:40pm Monday 2/20/17
+#finished 11:20pm Wed 2/22/17
+
+#'Best network' finds a hybrid between stenochiines and Melaneleodes ... which I reject.
+#Second best network - Ancestral Amphidorini hybridized with Melaneleodes ... but puts Sten- and Metablapylis with the rest o the 'Eleodes'
+net1b=readMultiTopology("net1_raxml.networks")[2]
+rootatnode!(net1b,"Clamoris_KK20")
+
+#Need to rerun this analysis without outgroups, or a single outgroup for rooting.
+
+
+net2 = snaq!(net1b,raxmlCF,hmax=2, filename="net2_raxml")
+#started 4:15pm Thurs 2/12/17
+
+
+#################
+##May 2, 2018 - new sequences - 29 taxa
+##################
+
+#Followed original pipeline and scripts - assembled each of the new transcriptomes using batch_agalma.sh
+#Used trans_decoder to find longest ORFs
+#Note: Eleodes hirsuta has a much smaller assembled transcriptome ... may need to drop from final analyses.
+#Removed extraneous outgroups (left both blapstinus and notiobius ... not sure if I should drop one, but meh)
+#ran FastOrtho using:
+cd '/home/andrew/scratch/FastOrtho/src' 
+./FastOrtho '/media/andrew/data/to_analyze/fastortho/Eleodes_FastOrtho29'
+
+#fastortho finished while I was away, and the computer was shut down while I was gone.  Not sure how long it took
+#287 1:1 orthos for 29 taxa, 84 1:1 with 28 taxa.  Pulled both together for 371 loci. "1to1orthos.txt"
+#processed 1:1 file
+python3 FastOrthoProcess.py 1to1orthos.txt AA/ NUCL/ 
+#followed previous pipeline:
+cd OrthoGroups/
+#placing scripts in a folder at the top of the list.
+mkdir all_scripts
+#created a directory for failed ortholog groups
+mkdir failed_groups
+#ran MultiMAFFT.sh - which I edited moderately from Kojun's version
+./all_scripts/MultiMAFFT.sh
+#ran Format_alignments.sh - converts to 1-line fasta, checks for shortseqs, removes groups missing taxa
+#note I set it to 40% max missing data instead of 50% like before.
+#also note: change the req taxa to 29! or all will fail to match the 23 from before.
+./all_scripts/Format_alignments.sh
+#lost a few groups, down to 336 after processing shortseqs
+#ran MultiProttest.sh - uses prottest 3.4.2 on each cluster, makes a file called raxmlmodel with the model name in each directory
+./all_scripts/MultiProttest.sh
+#ran multi raxml script - converts fasta to phylip, runs raxml and cleans up files.
+./all_scripts/MultiRaxml.sh
+#Note: I increased the number to 100 BS replicates per gene.
+#Note: after this step finished, I changed the script to only run on 4 processors, I think that hyperthreading slowed down bootstrap analyses somewhat significantly
+
+#gathered and cleaned all gene/BS trees for ASTRAL analysis:
+./all_scripts/ASTRAL_prep_final.sh
+#Note: my original astral prep file wasn't formatted correctly.  I had made changes to the "Astral_prep100.sh" from before (when I reran BS analyses for 100 reps) - these were merged into the final shell script ran here.
+
+
+#ran Astral using the following command:
+cd ASTRAL/
+java -jar '/home/andrew/phylo_path/Astral/astral.4.10.12.jar' -i genetrees_clean.tre -o astral_out -b BStrees  -r 100
+
+
+
+
+
+#Concatenation
+#ran concatenate script from orthogroups folder (with a text file of each taxon name on a single line in the directory)
+./concatenate
+
+#moved resultant text files to subfolder (each line is a separate locus) - all files had same line and character count
+
+for FILE in *.txt ; do echo "${FILE%.txt}     $(cat $FILE | tr -d '\n')" >> alignment.phy; done
+
+#note, to remove newline characters from a file (i.e. to not count them in wc commands) use tr -d '\n' > newtext.txt
+
+
+##############################
+#1Kite assembly:
+##############################
+
+
+./sisrs loci -p 8 -f '/media/andrew/data/assembly_analysis/SISRS/fastqs' -l 2 -z'/media/andrew/data/assembly_analysis/SISRS/loci-1kite' -m 0
+
+
+#copied all the sets of 'orthologs' (labeled by TC GLEAN numbers from input file) into a new directory
+
+#Counted how many had each number of taxa:
+
+for FILE in *.fa; do grep -c ">" $FILE; done | sort |uniq -c
+
+#Found 1109 files that had 29 entries in the fasta....
+#Copied those with 29 taxa into a new folder...
+mkdir 29taxa
+
+for FILE in *.fa; do if [ $(grep -c ">" $FILE) -eq 29 ]; then cp $FILE 29taxa/${FILE} ; fi ; done
+
+# Ran modified pipeline from the fastortho analysis, rewrote scripts to work with nwe file names and to handle nt's
+./MultiMafft-1k.sh
+./FormatAlignments-1k.sh
+
+# Kept 291 groups after alignment and sequence checking (threshhold at 40% gaps to remove)
+#ran modified fasta-to-phylip script with multiraxml
+./MultiRaxml-1k.sh
+
+#ran modified ASTRAL prep script to clean tree files nad gather them together
+./ASTRAL_prep_final-1k.sh
+
+#ran Astral using the following command:
+cd ASTRAL/
+java -jar '/home/andrew/phylo_path/Astral/astral.4.10.12.jar' -i genetrees_clean.tre -o astral_out -b BStrees  -r 100
+
+
+
+###################################
+##    FastOrtho NUCL tree
+###################################
+
+#scripts modified to act upon nucleotide fastas
+#simply used GTRGAMMA for raxml
+./all_scripts/MultiMAFFT-NUCL.sh
+./all_scripts/Format_alignments-NUCL.sh
+./all_scripts/ASTRAL_prep_final-NUCL.sh
+
+#run ASTRAL
+cd ASTRAL/
+java -jar '/home/andrew/phylo_path/Astral/astral.4.10.12.jar' -i genetrees_clean.tre -o astral_out -b BStrees  -r 100
+
+
+
+#########################
+##  Remove 28 taxa groups (for consistency)
+#########################
+
+mkdir 28-taxa
+#count entries in AA longcontig fasta, if not 29, group must have 28 (based off of previous workflows)
+#move offending groups to 28-taxa directory
+for GROUP in $(ls -d ORTHOMCL*/); do if [ $(grep -c '>' ${GROUP}*AA_aln_1line_longcontigs.fa ) -eq 29 ]; then echo $GROUP has 29 taxa ; else mv $GROUP 28-taxa/ ; fi; done
+
+#ran modified astral prep files (to put into newly named subdirectory)
+./all_scripts_ASTRAL_prep_final-29.sh
+./all_scripts_ASTRAL_prep_final-NUCL29.sh
+
+#ran ASTRAL
+cd ASTRAL29
+java -jar '/home/andrew/phylo_path/Astral/astral.4.10.12.jar' -i genetrees_clean.tre -o astral_out -b BStrees  -r 100
+
+cd ..
+cd ASTRAL29NUCL
+java -jar '/home/andrew/phylo_path/Astral/astral.4.10.12.jar' -i genetrees_clean.tre -o astral_out -b BStrees  -r 100
+
+
+
+
+###########
+## Pull out fastas to compare to each other
+###########
+
+#pull out Amphidora littoralis sequences, add in the group name to the fasta header
+
+#ORTHOMCL sequences
+for GROUP in $(ls -d ORTHOMCL*/); do grep -A 1 Amphidora ${GROUP}*_NUCL_aln_1line.fa | sed -e 's/_KK36/'"_KK36_${GROUP%/}"'/g' >> Amphidora-OrthoMCL.fa ; done
+
+#SISRS loci sequences
+for GROUP in $(ls -d SISRS_NODE*/); do grep -A 1 Amphidora ${GROUP}*_aln_1line.fa | sed -e 's/_KK36/'"_KK36_${GROUP%/}"'/g' >> Amphidora-SISRS.fa ; done
+
+#SISRS 1Kite genes
+for GROUP in $(ls -d *_GLEAN_*/); do grep -A 1 Amphidora ${GROUP}*_align_1line.fa | sed -e 's/_KK36/'"_KK36_${GROUP%/}"'/g' >> Amphidora-1k.fa ; done
+
+
+##########
+## Combined ASTRAL run
+##########
+
+#Copied BStrees and genetrees.tre files to single folder
+#put them together
+cat *genetrees.tre >> genetrees-all.tre
+cat *BStrees >> BStrees-all
+
+#895 loci
+
+#called ASTRAL
+java -jar '/home/andrew/phylo_path/Astral/astral.4.10.12.jar' -i genetrees-all.tre -o astral_out -b BStrees-all  -r 100
+
+
+#found several overlap loci.  Removed by hand
+#844 loci left
+#run ASTRAL
+cd pruned-combined
+java -jar '/home/andrew/phylo_path/Astral/astral.4.10.12.jar' -i genetrees-all.tre -o pruned-astral_out -b BStrees-all  -r 100
+
+
+
+
+
+
+
+
+
+
+

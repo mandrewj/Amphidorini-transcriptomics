@@ -1,0 +1,134 @@
+##############################
+#September 2018 - M. Andrew Johnston
+##############################
+#
+#Comparing Ortholog sets
+#
+##############################
+
+
+#Create a single fasta file for a taxon
+#Start in the directory of ortholog groups
+
+for FILE in $(ls -d ORTHO*/); do grep -A 1 Amphidora ${FILE}${FILE%/}_NUCL.fa| sed "s/|/|${FILE%/}|/" >>Amphidora-orthologs.fa; done
+
+#In NUCL-BlastDBs
+
+
+#search for matching orthogroups
+
+blastn -task blastn -query Amphidora.txt -db Stenomorpha_WorkingForKojun.fasta -evalue .01 -outfmt '6 qseqid sseqid length qstart qend evalue sseq' > amph-steno.txt
+
+
+###### aTRAM analyses ##############
+#Following github guide for aTRAM 2.0 - installed from github clone using pip (not using virtual environment - need python3 specifications
+#set temp dir to data drive ....
+#use --sqlite-temp-dir '/media/andrew/data/temp_dir'
+
+
+#copied gzipped fastq's to folder:
+for FILE in $(ls -d */); do cp ${FILE}*.gz '/media/andrew/data/aTRAM_analysis/fastqs' ; done
+
+
+#enter folder with fastqs...
+#unzip the fastqs
+gunzip *.gz
+#create library
+python3 '/media/andrew/data/assembly_analysis/aTRAM/atram_preprocessor.py' --cpus 4 -b Amphidora_littoralis_KK36 --end-1 Amphidora_littoralis_KK36_R1.fastq.gz --end-2 Amphidora_littoralis_KK36_R2.fastq.gz --sqlite-temp-dir '/media/andrew/data/temp_dir'
+
+#enter Stenomorpha folder, have Stenomorpha_probes.fasta ready
+python3 '/media/andrew/data/assembly_analysis/aTRAM/atram.py' -b '/media/andrew/data/assembly_analysis/fastqs/Amphidora_littoralis_KK36/Amphidora_littoralis_KK36' -q Stenomorpha_probes.fasta --cpus 8 --kmer 31 -o Amphidora_littoralis_kk36-Stenomorpha.fasta --log-file Amphidora_littoralis_KK36.log -a velvet
+
+
+
+
+#SISRS analysis - from sisrs BIN folder
+#need to add to samtools path
+#standard loci run. Finished Tuesday ~3pm - started...Sunday night? Monday night?
+./sisrs loci -g 50000000 -p 8 -f '/media/andrew/data/assembly_analysis/SISRS/fastqs' -l 2 -z'/media/andrew/data/assembly_analysis/SISRS/loci' 
+
+#sites run with -m 3 (max 3 missing taxa)
+./sisrs sites -g 50000000 -p 8 -f '/media/andrew/data/assembly_analysis/SISRS/fastqs' -l 2 -z'/media/andrew/data/assembly_analysis/SISRS/sites-m3' -m 3
+
+
+
+###########################
+### loci -m27
+###########################
+
+#had 123,355 putative loci, presumably with at least 3 taxa each
+
+####################
+
+#filter loci down to useful loci
+#Find 1k+ loci
+grep "_length_[0-9][0-9][0-9][0-9]" loci.txt > 1klong_loci.txt
+#Find 300+ nt loci
+grep "_length_[3-9][0-9][0-9]" loci.txt > long_loci.txt
+#condense files
+cat 1klong_loci.txt >> long_loci.txt
+
+#ended up with 3631 putative loci with 300+ bases
+
+#copy fastas to new folder
+for GROUP in $(cat long_loci.txt); do cp loci/${GROUP}.fa long_loci/ ; done
+cd long_loci/
+mkdir missing_taxa
+#remove loci missing taxa (used full 29 for this run)
+for FILE in *.fa ; do if [ $(grep -c ">" $FILE ) -lt 29 ] ; then mv $FILE missing_taxa/ ; echo $FILE missing taxa  ; fi; done
+
+
+#FYI
+#remove locus name after species names
+cat SISRS_NODE_1111_length_309_cov_4.0388.fa | cut -f1,2,3 -d'_' >out.txt
+
+
+
+#MOVED 400+ nt loci to analysis folder for other ASTRAL runs
+#removed the duplicate aligned files that were in the locus text document
+rm *_align.fa
+
+#created directory system
+#had to remove the locus name in fasta files
+for FILE in *.fa ; do mkdir ${FILE%.fa} ; cat $FILE | cut -f1,2,3 -d'_' > ${FILE%.fa}/${FILE} ; done
+
+#modified fast-ortho / ASTRAL scripts to run on new filenames...
+./all_scripts/MultiMAFFT-SISRS.sh
+./all_scripts/Format_alignments-SISRS.sh
+./all_scripts/MultiRaxml-SISRS.sh
+
+#several groups failed RAXML because a taxon had fully undetermined values (all N's)
+#these groups were discovered during first run of ASTRAL prep script.
+#removed these to failed groups and re-ran ASTRAL prep script
+
+./all_scripts/ASTRAL_prep_final-SISRS.sh
+
+#run ASTRAL
+cd ASTRAL/
+java -jar '/home/andrew/phylo_path/Astral/astral.4.10.12.jar' -i genetrees.tre -o astral_out -b BStrees  -r 100
+
+
+
+
+#########################################
+##  Gene Count Stats 
+#########################################
+1k-sisrs: 291 groups with all 29 taxa represented
+sisrs-loci (400nt+): 372 groups with all 29 taxa represented
+FASTORTHO: 232 groups with all 29 taxa represented
+
+
+##########
+##Concatenated Tree Topologies
+##########
+Amphidora+Eleodimorpha - 1k-sisrs, sisrs-loci
+
+Comb - AA29, combined-pruned, NUCL29
+
+
+
+
+
+
+
+
