@@ -30,6 +30,7 @@ The FastOrthoProcess.py script in the same folder was called to assemble each gr
 The SISRS package (https://github.com/rachelss/SISRS) was used to run a standard 'loci' analysis with the genome size set to 50000 and the maximum allowed missing taxa set to 3.
 
 From this standard output, ortholog groups were filtered to find longer genes with 29 taxa each. The following commands were used:
+
 `#Find 1k+ loci - note no loci were over 10kbp`
 
 `grep "_length_[0-9][0-9][0-9][0-9]" loci.txt > 1klong_loci.txt `
@@ -44,6 +45,7 @@ From this standard output, ortholog groups were filtered to find longer genes wi
 
 
 Moved the length-filtered SISRS-created fastas to a new directory
+
 `#copy fastas to new folder`
 
 `for GROUP in $(cat long_loci.txt); do cp loci/${GROUP}.fa long_loci/ ; done`
@@ -70,6 +72,7 @@ Conserved low-copy orthologs were developed by the insect-wide phylotranscriptom
 The darkling beetle **Triobolium castaneum** (Herbst) was incorporated in this study and the nucleotide sequences for this species were used as a reference for a SISRS assembly.
 
 SISRS loci was called with this fasta as a reference with 0 allowed missing taxa.  From this output, all loci with 29 orthologs were moved to individual folders:
+
 `#Copied those with 29 taxa into a new folder...`
 
 `mkdir 29taxa`
