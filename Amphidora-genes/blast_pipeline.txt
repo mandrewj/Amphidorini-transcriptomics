@@ -1,0 +1,34 @@
+#Blast pipeline
+
+#made blast DB's for each, from the 3 fastas.
+#e.g.
+makeblastdb -in Amphidora-SISRS.fa -dbtype nucl -out SISRS
+
+#Pairwise blasts:
+blastn -query Amphidora-1k.fa -db NUCL29 -outfmt "6 qseqid sseqid length qlen slen evalue bitscore" >1k-to-NUCL29.txt
+blastn -query Amphidora-1k.fa -db SISRS -outfmt "6 qseqid sseqid length qlen slen evalue bitscore" >1k-to-SISRS.txt
+
+blastn -query Amphidora-OrthoMCL.fa -db 1k -outfmt "6 qseqid sseqid length qlen slen evalue bitscore" >NUCL29-to-1k.txt
+blastn -query Amphidora-OrthoMCL.fa -db SISRS -outfmt "6 qseqid sseqid length qlen slen evalue bitscore" >NUCL29-to-SISRS.txt
+
+blastn -query Amphidora-SISRS.fa -db 1k -outfmt "6 qseqid sseqid length qlen slen evalue bitscore" >SISRS-to-1k.txt
+blastn -query Amphidora-SISRS.fa -db NUCL29 -outfmt "6 qseqid sseqid length qlen slen evalue bitscore" >SISRS-to-NUCL29.txt
+
+
+
+#Find percentage of overlapping sequences
+cat *-to-*.txt | cut -f3,4,5 >>overlap.txt
+
+#find pairs of genes
+#tr removed all characters in string ... so all a's and all 3's and 6's
+#cat *-to-*.txt | cut -f1,2 | sort | uniq | tr -d "Amphidora_littoralis_KK36_" > pairs.txt
+#modified
+cat *-to-*.txt | cut -f1,2 | sort | uniq |sed -e 's/Amphidora_littoralis_KK36_//g' > pairs.txt
+
+27 NUCL29 overlap with 1k-SISRS
+1 NUCL29 overlap with SISRS-Loci
+26 1k-SISRS overlap with SISRS-Loci **  BUT! 2 pairs of double LOCI overlapping with 1k-SISRS
+
+#Find orig seq lengths:
+for SEQ in $(cat 1k-tO-SISRS.txt | cut -f1 );do grep -A 1 $SEQ Amphidora-1k.fa | tail -1 | wc -c >> length.txt ; done
+
