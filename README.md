@@ -31,11 +31,17 @@ The SISRS package (https://github.com/rachelss/SISRS) was used to run a standard
 
 From this standard output, ortholog groups were filtered to find longer genes with 29 taxa each. The following commands were used:
 `#Find 1k+ loci - note no loci were over 10kbp`
+
 `grep "_length_[0-9][0-9][0-9][0-9]" loci.txt > 1klong_loci.txt `
+
 `#Find 400+ nt loci`
+
 `grep "_length_[4-9][0-9][0-9]" loci.txt > long_loci.txt`
+
 `#condense files`
+
 `cat 1klong_loci.txt >> long_loci.txt`
+
 
 Moved the length-filtered SISRS-created fastas to a new directory
 `#copy fastas to new folder`
