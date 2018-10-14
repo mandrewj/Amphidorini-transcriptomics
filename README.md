@@ -45,13 +45,21 @@ From this standard output, ortholog groups were filtered to find longer genes wi
 
 Moved the length-filtered SISRS-created fastas to a new directory
 `#copy fastas to new folder`
+
 `for GROUP in $(cat long_loci.txt); do cp loci/${GROUP}.fa long_loci/ ; done`
+
 `cd long_loci/`
+
 `mkdir missing_taxa`
+
 `#remove loci missing taxa (used full 29 for this run)`
+
 `for FILE in *.fa ; do if [ $(grep -c ">" $FILE ) -lt 29 ] ; then mv $FILE missing_taxa/ ; echo $FILE missing taxa  ; fi; done`
+
 `#created directory system`
+
 `#had to remove the locus name in fasta files`
+
 `for FILE in *.fa ; do mkdir ${FILE%.fa} ; cat $FILE | cut -f1,2,3 -d'_' > ${FILE%.fa}/${FILE} ; done`
 
 
@@ -63,7 +71,9 @@ The darkling beetle **Triobolium castaneum** (Herbst) was incorporated in this s
 
 SISRS loci was called with this fasta as a reference with 0 allowed missing taxa.  From this output, all loci with 29 orthologs were moved to individual folders:
 `#Copied those with 29 taxa into a new folder...`
+
 `mkdir 29taxa`
+
 `for FILE in *.fa; do if [ $(grep -c ">" $FILE) -eq 29 ]; then cp $FILE 29taxa/${FILE} ; fi ; done`
 
 
@@ -72,6 +82,7 @@ For each of these ortholog sets, individual ortholog group was aligned and check
 
 Each directory contains a folder of scripts which were used to run these analyses. This step incorporated the following:
 `./all_scripts/MultiMAFFT.sh`
+
 `./all_scripts/Format_alignments.sh`
 
 
@@ -87,20 +98,29 @@ Both concatenation and coalesct-based species-tree analyses were performed.
 Each ortholog folder contains a script used to concatenate all genes together.  First the sequences were split to files per taxon, then the files were combined into a phylip alignment.
 
 `./concatenate.sh`
-`#moved resultant text files to subfolder (each line is a separate locus) - all files had same line and character count
+
+`#moved resultant text files to subfolder (each line is a separate locus) - all files had same line and character count`
+
 `for FILE in *.txt ; do echo "${FILE%.txt}     $(cat $FILE | tr -d '\n')" >> alignment.phy; done`
-These phylip files were then analyzed using RAxML on the CIPRES gateway(https://www.phylo.org/por`tal2/).
+
+These phylip files were then analyzed using RAxML on the CIPRES gateway(https://www.phylo.org/portal2/).
 
 ###ASTRAL-II coalescent analyses
 Each a gene tree was inferred for each ortholog group using raxml, and then the gene trees and bootstrap files were moved to a folder for analysis
 
-`#ran multi raxml script - converts fasta to phylip, runs raxml and cleans up files.
-./all_scripts/MultiRaxml.sh
-#gathered and cleaned all gene/BS trees for ASTRAL analysis:
-./all_scripts/ASTRAL_prep_final.sh
-#ran Astral using the following command:
-cd ASTRAL/
-java -jar '/home/andrew/phylo_path/Astral/astral.4.10.12.jar' -i genetrees_clean.tre -o astral_out -b BStrees  -r 100
+`#ran multi raxml script - converts fasta to phylip, runs raxml and cleans up files.`
+
+`./all_scripts/MultiRaxml.sh`
+
+`#gathered and cleaned all gene/BS trees for ASTRAL analysis:`
+
+`./all_scripts/ASTRAL_prep_final.sh`
+
+`#ran Astral using the following command:`
+
+`cd ASTRAL/`
+
+`java -jar '/home/andrew/phylo_path/Astral/astral.4.10.12.jar' -i genetrees_clean.tre -o astral_out -b BStrees  -r 100
 `
 
 ##Further documentation
