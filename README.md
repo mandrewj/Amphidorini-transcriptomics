@@ -91,6 +91,12 @@ Each directory contains a folder of scripts which were used to run these analyse
 
 The remaining groups were passed along to the following phylogenetic analyses.
 
+###Creating the combined ortholog set
+The sequences for **Amphidora littoralis** were extracted for each ortholog and reciprocally blasted against each other to find any potential duplicates.
+
+The folder Amphidora_genes/ contains all files used and produced from the analysis. blast_pipeline.txt shows the step=-by-step commands used. The file pairs-aligned.txt is a tab-delimited file which matches the overlapping pairs found.
+One of each matches was excluded for the combined analysis (the SISRS-1Kite groups were preferentially removed since they were the most abundnat across all pairs). After duplicates were removed, the concatenation and ASTRAL preparation pipelines followed the protocols given below.
+
 
 
 ##Phylogenetic Analysis
@@ -106,7 +112,7 @@ Each ortholog folder contains a script used to concatenate all genes together.  
 
 `for FILE in *.txt ; do echo "${FILE%.txt}     $(cat $FILE | tr -d '\n')" >> alignment.phy; done`
 
-These phylip files were then analyzed using RAxML on the CIPRES gateway(https://www.phylo.org/portal2/).
+These phylip files, available in the Concatenated_sequences folder, were then analyzed using RAxML on the CIPRES gateway(https://www.phylo.org/portal2/).
 
 ###ASTRAL-II coalescent analyses
 Each a gene tree was inferred for each ortholog group using raxml, and then the gene trees and bootstrap files were moved to a folder for analysis
