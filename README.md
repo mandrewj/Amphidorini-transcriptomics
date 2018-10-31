@@ -8,13 +8,13 @@ Phylotranscriptomic Analysis of the Amphidorini LeConte, 1862
 
 This project is a repository to document and share the underlying methods and data for the present project.
 
-##Transcriptomes
+## Transcriptomes
 Raw FASTQs are not posted here but are available from the author (ajohnston@asu.edu)
 Assembled Trinity transcriptomes are available in amino-acid and nucleotide formats in the included Transcriptomes folder
 
 Transcriptomes were assembled following the Agalma pipeline (https://bitbucket.org/caseywdunn/agalma.git) followed by TransDecoder (https://transdecoder.github.io/)
 
-##Ortholog Discovery
+## Ortholog Discovery
 Three sets of orthologs were developed for this project.
 
 ### FastOrtho
