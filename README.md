@@ -26,7 +26,7 @@ The raw output of putative ortholog groups (EleoOrtho.end) is available in compr
 
 The FastOrthoProcess.py script in the same folder was called to assemble each group by pulling the corresponding AA and Nucleotide sequences together from the transcriptomes into a new folder.
 
-###SISRS-loci
+### SISRS-loci
 The SISRS package (https://github.com/rachelss/SISRS) was used to run a standard 'loci' analysis with the genome size set to 50000 and the maximum allowed missing taxa set to 3.
 
 From this standard output, ortholog groups were filtered to find longer genes with 29 taxa each. The following commands were used:
@@ -66,7 +66,7 @@ Moved the length-filtered SISRS-created fastas to a new directory
 
 
 
-###SISRS-1Kite
+### SISRS-1Kite
 Conserved low-copy orthologs were developed by the insect-wide phylotranscriptomic study from the 1KITE project (https://doi.org/10.1126/science.1257570).
 
 The darkling beetle **Triobolium castaneum** (Herbst) was incorporated in this study and the nucleotide sequences for this species were used as a reference for a SISRS assembly.
@@ -80,7 +80,7 @@ SISRS loci was called with this fasta as a reference with 0 allowed missing taxa
 `for FILE in *.fa; do if [ $(grep -c ">" $FILE) -eq 29 ]; then cp $FILE 29taxa/${FILE} ; fi ; done`
 
 
-###Ortholog alignment and filtering
+### Ortholog alignment and filtering
 For each of these ortholog sets, individual ortholog group was aligned and checked for short sequences.  Any groups that contained a sequence that had 40% or more gaps in the final alignment was removed to avoid paralogy issues or erroneous assemblies.
 
 Each directory contains a folder of scripts which were used to run these analyses. This step incorporated the following:
@@ -91,7 +91,7 @@ Each directory contains a folder of scripts which were used to run these analyse
 
 The remaining groups were passed along to the following phylogenetic analyses.
 
-###Creating the combined ortholog set
+### Creating the combined ortholog set
 The sequences for **Amphidora littoralis** were extracted for each ortholog and reciprocally blasted against each other to find any potential duplicates.
 
 The folder Amphidora_genes/ contains all files used and produced from the analysis. blast_pipeline.txt shows the step=-by-step commands used. The file pairs-aligned.txt is a tab-delimited file which matches the overlapping pairs found.
@@ -99,10 +99,10 @@ One of each matches was excluded for the combined analysis (the SISRS-1Kite grou
 
 
 
-##Phylogenetic Analysis
+## Phylogenetic Analysis
 Both concatenation and coalesct-based species-tree analyses were performed.
 
-###Concatenation
+### Concatenation
 
 Each ortholog folder contains a script used to concatenate all genes together.  First the sequences were split to files per taxon, then the files were combined into a phylip alignment.
 
@@ -114,7 +114,7 @@ Each ortholog folder contains a script used to concatenate all genes together.  
 
 These phylip files, available in the Concatenated_sequences folder, were then analyzed using RAxML on the CIPRES gateway(https://www.phylo.org/portal2/).
 
-###ASTRAL-II coalescent analyses
+### ASTRAL-II coalescent analyses
 Each a gene tree was inferred for each ortholog group using raxml, and then the gene trees and bootstrap files were moved to a folder for analysis
 
 `#ran multi raxml script - converts fasta to phylip, runs raxml and cleans up files.`
@@ -132,7 +132,7 @@ Each a gene tree was inferred for each ortholog group using raxml, and then the 
 `java -jar '/home/andrew/phylo_path/Astral/astral.4.10.12.jar' -i genetrees_clean.tre -o astral_out -b BStrees  -r 100
 `
 
-##Further documentation
+## Further documentation
 Additional notes, reasoning, and minor formatting steps taken are documented in two included text files. First, Transcriptome_Pipeline.txt documents the overall process in most detail. Second, ortholog_sets_pipeline.txt records additional analyses attempted that were mostly abandoned for this project.
 
 ###### Kojun Kanda and Aaron Smith are gratefully acknowledged for assistance with analyses and data collection
